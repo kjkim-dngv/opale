@@ -255,8 +255,45 @@ $status-default-colors-map: (
     color:                      $white
   )
 ) !default;
-$status-custom-colors-map:      () !default;
-$status-colors-map:             map.merge($status-default-colors-map, $status-custom-colors-map);
+$status-custom-colors-map: (
+  status-1: (
+    background: shade(#f4ee00, 500),
+    color: $white,
+  ),
+  closed: (
+    background: shade($gray, 500),
+    color: $white,
+  ),
+  status-2: (
+    background: shade($blue, 500),
+    color: $white,
+  ),
+  status-3: (
+    background: shade($green, 500),
+    color: $white,
+  ),
+  status-4: (
+    background: shade(#747474, 500),
+    color: $white,
+  ),
+  status-5: (
+    background: shade($orange, 500),
+    color: $white,
+  ),
+  status-6: (
+    background: shade($yellow, 500),
+    color: $white,
+  ),
+  status-7: (
+    background: shade($green, 500),
+    color: $white,
+  ),
+  status-8: (
+    background: shade($teal, 500),
+    color: $white,
+  )
+) !default;
+$status-colors-map: map.merge($status-default-colors-map, $status-custom-colors-map);
 
 
 // Trackers priorities
