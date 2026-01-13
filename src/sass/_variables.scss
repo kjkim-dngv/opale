@@ -402,7 +402,64 @@ $tracker-default-colors-map: (
     color:                      $white
   )
 ) !default;
-$tracker-custom-colors-map:     () !default;
+$tracker-custom-colors-map: (
+  1: (  // 설계
+    background: #a48100,
+    color: $white,
+  ),
+  3: (  // 조달
+    background: #1e82cd,
+    color: $white,
+  ),
+  4: (  // 조립
+    background: #0000cd,
+    color: $white,
+  ),
+  5: (  // 시험
+    background: #00c800,
+    color: $white,
+  ),
+  6: (  // 납품
+    background: #007000,
+    color: $white,
+  ),
+  9: (  // 영업
+    background: #dfda00,
+    color: $white,
+  ),
+  10: ( // 검토
+    background: #eab800,
+    color: $white,
+  ),
+  11: ( // 관리
+    background: #747474,
+    color: $white,
+  ),
+  12: ( // 설치
+    background: #0f0,
+    color: $white,
+  ),
+  17: ( // AS
+    background: #f00,
+    color: $white,
+  ),
+  18: ( // 제작
+    background: #06f,
+    color: $white,
+  ),
+  19: ( // 생산
+    background: #50c2ff,
+    color: $white,
+  ),
+  22: ( // 장애
+    background: #f39,
+    color: $white,
+  ),
+  23: ( // 제목
+    background: $black,
+    color: $white,
+  )
+) !default;
 $tracker-colors-map:            map.merge($tracker-default-colors-map, $tracker-custom-colors-map);
 
 
