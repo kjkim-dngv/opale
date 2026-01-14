@@ -465,10 +465,11 @@ ul.projects {
   }
 
   a.project {
-    font-size: variables.$font-size-h3;
+    font-size: variables.$font-size-h3-1;
     font-weight: variables.$font-weight-bold;
 
     &.child {
+      font-size: variables.$font-size-h4-1;
       font-weight: variables.$font-weight-normal;
     }
   }
