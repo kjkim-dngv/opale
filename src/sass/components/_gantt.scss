@@ -72,13 +72,34 @@ table.gantt-table {
   z-index: 1;
   font-size: variables.$font-size-small;
 
+  .project-name,
+  .version-name,
+  .issue-subject {
+    a {
+      margin-left: 4px;
+    }
+
+    .icon {
+      display: inline;
+      vertical-align: baseline;
+
+      &.expander {
+        margin-left: 2px;
+      }
+    }
+
+    img.icon-gravatar,
+    img.icon-avatar,
+    svg.icon-svg {
+      float: none;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
   .issue-subject {
     &:hover {
       background-color: variables.$table-bg-hover;
-    }
-
-    img.icon-gravatar {
-      float: none;
     }
   }
 }
