@@ -215,7 +215,7 @@ td.gantt_selected_column .gantt_hdr,
   &.task_done,
   &.task_todo {
     height: 2px;
-    margin-top: 3px;
+    margin-top: 0.4rem;
   }
 
   &.task_todo {
@@ -224,7 +224,7 @@ td.gantt_selected_column .gantt_hdr,
   }
 
   &.marker {
-    margin-top: 1px;
+    margin-top: 0.275rem;
     margin-left: -4px;
     border: 0 none;
     background-image: url("../../../images/version_marker.png");
@@ -289,5 +289,12 @@ td.gantt_selected_column .gantt_hdr,
         left: auto;
       }
     }
+  }
+}
+
+// Gantt draw area
+#gantt_draw_area {
+  svg {
+    transform: translateY(0.15rem);
   }
 }
