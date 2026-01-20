@@ -2,116 +2,213 @@ $(function () {
   "use strict";
 
   // StatusWrapper
-  document.querySelectorAll(".list.issues td.status").forEach(function (el) {
+  document.querySelectorAll(".list.issues td.status").forEach((el) => {
     if (!el.querySelector("span")) {
-      var text = el.textContent.trim();
+      const text = el.textContent.trim();
       if (text) {
         el.innerHTML = "<span>" + text + "</span>";
       }
     }
   });
 
-  // 간트차트 페이지인지 확인 (URL에 /gantt가 포함되어 있는지 체크)
+  // 간트차트 페이지인지 확인
   if ($('body').hasClass('controller-gantts')) {
 
-    // 캡처링 단계에서 이벤트 잡기 (gantt.js 핸들러보다 먼저 실행)
-    document.addEventListener('click', function(e) {
-      var expander = e.target.closest('div.gantt_subjects .expander');
-      if (expander) {
-        e.stopImmediatePropagation();
-        e.stopPropagation();
-        customGanttEntryClick({ currentTarget: expander });
+    // ========== 간트차트 토글 모듈 ==========
+    const GanttToggle = (function() {
+      // ========== 상수 ==========
+      const EXPANDER_WIDTH = 18;
+
+      // ========== Private 변수 ==========
+      let taskBarsMap = {};
+      let selectedColumnsMap = {};
+      const parsedJsonCache = new WeakMap();
+      let subjectsArray = [];
+      const subjectIndexMap = new WeakMap();
+      const subjectDataMap = new WeakMap();
+
+      // ========== 헬퍼 함수 ==========
+      const getCacheKey = (objId, numberOfRows) => objId + '_' + numberOfRows;
+
+      function getParsedJson(el) {
+        if (parsedJsonCache.has(el)) {
+          return parsedJsonCache.get(el);
+        }
+        const jsonStr = el.dataset.collapseExpand;
+        let parsed = {};
+        try {
+          parsed = jsonStr ? JSON.parse(jsonStr) : {};
+        } catch(e) {}
+        parsedJsonCache.set(el, parsed);
+        return parsed;
       }
-    }, true); // true = 캡처링 단계
 
-    // 수정된 간트차트 토글 함수
-    function customGanttEntryClick(e){
-      var icon_expander = e.currentTarget;
-      var subject = $(icon_expander.parentElement);
-      // var subject_left = parseInt(subject.css('left')) + parseInt(icon_expander.offsetWidth);
-      var subject_left = parseInt(subject.css('left')); // expander width를 더하지 않음
+      function populateMap(selector, map) {
+        document.querySelectorAll(selector).forEach((el) => {
+          const parsed = getParsedJson(el);
+          const key = getCacheKey(parsed.obj_id || el.dataset.collapseExpand, el.dataset.numberOfRows);
+          if (!map[key]) map[key] = [];
+          map[key].push(el);
+        });
+      }
 
-      var target_shown = null;
-      var target_top = 0;
-      var total_height = 0;
-      var out_of_hierarchy = false;
-      var iconChange = null;
-      if(subject.hasClass('open'))
-        iconChange = function(element){
-          var expander = $(element).find('.expander')
-          expander.switchClass('icon-expanded', 'icon-collapsed');
-          $(element).removeClass('open');
-          if (expander.find('svg').length === 1) {
-            updateSVGIcon(expander[0], 'angle-right')
+      function toggleIcon(element, collapse) {
+        const expander = element.firstElementChild;
+        if (expander && expander.classList.contains('expander')) {
+          expander.classList.toggle('icon-expanded', !collapse);
+          expander.classList.toggle('icon-collapsed', collapse);
+          const svg = expander.querySelector('svg');
+          if (svg) updateSVGIcon(expander, collapse ? 'angle-right' : 'angle-down');
+        }
+        element.classList.toggle('open', !collapse);
+      }
+
+      function updateRelatedElements(cacheKey, newTop, shouldHide) {
+        const taskBars = taskBarsMap[cacheKey];
+        if (taskBars) {
+          for (let i = 0, len = taskBars.length; i < len; i++) {
+            const task = taskBars[i];
+            if (newTop !== null) task.style.top = newTop + 'px';
+            if (shouldHide !== null && !task.classList.contains('tooltip')) {
+              task.style.display = shouldHide ? 'none' : '';
+            }
           }
-        };
-      else
-        iconChange = function(element){
-          var expander = $(element).find('.expander')
-          expander.find('.expander').switchClass('icon-collapsed', 'icon-expanded');
-          $(element).addClass('open');
-          if (expander.find('svg').length === 1) {
-            updateSVGIcon(expander[0], 'angle-down')
+        }
+
+        const selectedColumns = selectedColumnsMap[cacheKey];
+        if (selectedColumns) {
+          for (let i = 0, len = selectedColumns.length; i < len; i++) {
+            const col = selectedColumns[i];
+            if (newTop !== null) col.style.top = newTop + 'px';
+            if (shouldHide !== null) col.style.display = shouldHide ? 'none' : '';
           }
-        };
-      iconChange(subject);
-      subject.nextAll('div').each(function(_, element){
-        var el = $(element);
-        var json = el.data('collapse-expand');
-        var number_of_rows = el.data('number-of-rows');
-        var el_task_bars = '#gantt_area form > div[data-collapse-expand="' + json.obj_id + '"][data-number-of-rows="' + number_of_rows + '"]';
-        var el_selected_columns = 'td.gantt_selected_column div[data-collapse-expand="' + json.obj_id + '"][data-number-of-rows="' + number_of_rows + '"]';
-
-        // 다음 요소의 left 값을 정규화
-        var el_left = parseInt(el.css('left'));
-        var el_has_expander = el.find('.expander').length > 0;
-
-        // expander가 없는 요소는 left에서 expander 공간(약 18px)을 빼서 비교
-        if (!el_has_expander) {
-          el_left -= 18; // 또는 icon_expander.offsetWidth
         }
+      }
 
-        // if(out_of_hierarchy || parseInt(el.css('left')) <= subject_left){
-        if(out_of_hierarchy || el_left <= subject_left){
-          out_of_hierarchy = true;
-          if(target_shown == null) return false;
-          var new_top_val = parseInt(el.css('top')) + total_height * (target_shown ? -1 : 1);
-          el.css('top', new_top_val);
-          $([el_task_bars, el_selected_columns].join()).each(function(_, el){
-            $(el).css('top', new_top_val);
+      // ========== 캐시 구축 ==========
+      function buildCache() {
+        taskBarsMap = {};
+        selectedColumnsMap = {};
+        subjectsArray = [];
+
+        populateMap('#gantt_area form > div[data-collapse-expand]', taskBarsMap);
+        populateMap('td.gantt_selected_column div[data-collapse-expand]', selectedColumnsMap);
+
+        document.querySelectorAll('.gantt_subjects div[data-collapse-expand]').forEach((el, index) => {
+          const firstChild = el.firstElementChild;
+          const json = getParsedJson(el);
+          const numberOfRows = el.dataset.numberOfRows;
+
+          subjectsArray.push(el);
+          subjectIndexMap.set(el, index);
+          subjectDataMap.set(el, {
+            left: parseInt(el.style.left) || 0,
+            hasExpander: firstChild && firstChild.classList.contains('expander'),
+            topIncrement: json.top_increment || 0,
+            cacheKey: getCacheKey(json.obj_id, numberOfRows)
           });
-          return true;
-        }
-        var is_shown = el.is(':visible');
-        if(target_shown == null){
-          target_shown = is_shown;
-          target_top = parseInt(el.css('top'));
-          total_height = 0;
-        }
-        if(is_shown == target_shown){
-          $(el_task_bars).each(function(_, task) {
-            var el_task = $(task);
-            if(!is_shown)
-              el_task.css('top', target_top + total_height);
-            if(!el_task.hasClass('tooltip'))
-              el_task.toggle(!is_shown);
-          });
-          $(el_selected_columns).each(function (_, attr) {
-            var el_attr = $(attr);
-            if (!is_shown)
-              el_attr.css('top', target_top + total_height);
-              el_attr.toggle(!is_shown);
-          });
-          if(!is_shown)
-            el.css('top', target_top + total_height);
-          iconChange(el);
-          el.toggle(!is_shown);
-          total_height += parseInt(json.top_increment);
-        }
-      });
-      drawGanttHandler();
-    }
+        });
+      }
 
-    console.log("간트차트 토글 핸들러가 이벤트 위임 방식으로 적용되었습니다.");
+      // ========== 토글 처리 ==========
+      function processChildren(startIdx, subjectLeft, collapse) {
+        let targetShown = null;
+        let targetTop = 0;
+        let totalHeight = 0;
+        let outsideIdx = -1;
+        const arrLen = subjectsArray.length;
+
+        for (let idx = startIdx; idx < arrLen; idx++) {
+          const el = subjectsArray[idx];
+          const data = subjectDataMap.get(el);
+          const elLeft = data.left - (data.hasExpander ? 0 : EXPANDER_WIDTH);
+
+          // 외부 요소 도달
+          if (elLeft <= subjectLeft) {
+            if (targetShown === null) break;
+            outsideIdx = idx;
+            break;
+          }
+
+          const visible = el.style.display !== 'none';
+          const top = parseInt(el.style.top) || 0;
+
+          if (targetShown === null) {
+            targetShown = visible;
+            targetTop = top;
+          }
+
+          if (visible === targetShown) {
+            const newTop = targetTop + totalHeight;
+
+            if (!targetShown) el.style.top = newTop + 'px';
+            el.style.display = targetShown ? 'none' : '';
+            toggleIcon(el, collapse);
+
+            updateRelatedElements(data.cacheKey, targetShown ? null : newTop, targetShown);
+            totalHeight += data.topIncrement;
+          }
+        }
+
+        return { targetShown, totalHeight, outsideIdx };
+      }
+
+      function adjustOutsidePositions(startIdx, heightDelta) {
+        const arrLen = subjectsArray.length;
+        for (let j = startIdx; j < arrLen; j++) {
+          const el = subjectsArray[j];
+          const data = subjectDataMap.get(el);
+          const newTop = (parseInt(el.style.top) || 0) + heightDelta;
+
+          el.style.top = newTop + 'px';
+          updateRelatedElements(data.cacheKey, newTop, null);
+        }
+      }
+
+      function handleToggle(e) {
+        const subjectEl = e.currentTarget.parentElement;
+        const clickedIndex = subjectIndexMap.get(subjectEl);
+        const subjectData = subjectDataMap.get(subjectEl);
+        const subjectLeft = subjectData ? subjectData.left : 0;
+        const isOpen = subjectEl.classList.contains('open');
+
+        toggleIcon(subjectEl, isOpen);
+
+        const { targetShown, totalHeight, outsideIdx } = processChildren(clickedIndex + 1, subjectLeft, isOpen);
+
+        if (outsideIdx >= 0) {
+          const heightDelta = totalHeight * (targetShown ? -1 : 1);
+          adjustOutsidePositions(outsideIdx, heightDelta);
+        }
+
+        requestAnimationFrame(drawGanttHandler);
+      }
+
+      // ========== 이벤트 바인딩 ==========
+      function bindEvents() {
+        document.addEventListener('click', (e) => {
+          const expander = e.target.closest('div.gantt_subjects .expander');
+          if (expander) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            handleToggle({ currentTarget: expander });
+          }
+        }, true);
+      }
+
+      function init() {
+        buildCache();
+        bindEvents();
+        console.log("간트차트에 테마의 커스텀 토글 핸들러가 적용되었습니다.");
+      }
+
+      // ========== Public API ==========
+      return {
+        init: init,
+        rebuildCache: buildCache
+      };
+    })();
+
+    GanttToggle.init();
   }
 });
