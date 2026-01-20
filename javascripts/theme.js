@@ -184,6 +184,89 @@ $(function () {
         requestAnimationFrame(drawGanttHandler);
       }
 
+      // ========== 일괄 접기 ==========
+      function recalculatePositions() {
+        let currentTop = null;
+        for (let i = 0, len = subjectsArray.length; i < len; i++) {
+          const el = subjectsArray[i];
+          if (el.style.display !== 'none') {
+            const data = subjectDataMap.get(el);
+            if (currentTop === null) {
+              currentTop = parseInt(el.style.top) || 0;  // 첫 요소의 top 유지
+            }
+            el.style.top = currentTop + 'px';
+            updateRelatedElements(data.cacheKey, currentTop, null);
+            currentTop += data.topIncrement;
+          }
+        }
+      }
+
+      function collapseFirstLevel() {
+        const firstLevelSubjects = [];
+
+        // 1단계 이슈 찾기 (parent만 있고 child 없는 것)
+        for (let i = 0, len = subjectsArray.length; i < len; i++) {
+          const el = subjectsArray[i];
+          const link = el.querySelector('a.issue');
+          if (link &&
+              link.classList.contains('parent') &&
+              !link.classList.contains('child') &&
+              el.classList.contains('open')) {
+            firstLevelSubjects.push({ el, idx: i });
+          }
+        }
+
+        if (firstLevelSubjects.length === 0) return;
+
+        // 1단계: 자식들 숨기기
+        firstLevelSubjects.forEach(({ el, idx }) => {
+          const data = subjectDataMap.get(el);
+          const subjectLeft = data.left;
+
+          // 아이콘 토글 (접힘 상태로)
+          toggleIcon(el, true);
+
+          // 자식들 숨기기 (아이콘 상태는 유지)
+          for (let i = idx + 1; i < subjectsArray.length; i++) {
+            const child = subjectsArray[i];
+            const childData = subjectDataMap.get(child);
+            const childLeft = childData.left - (childData.hasExpander ? 0 : EXPANDER_WIDTH);
+
+            if (childLeft <= subjectLeft) break;
+
+            if (child.style.display !== 'none') {
+              child.style.display = 'none';
+              updateRelatedElements(childData.cacheKey, null, true);
+            }
+          }
+        });
+
+        // 2단계: 보이는 요소들 위치 재계산
+        recalculatePositions();
+
+        // 3단계: 숨겨진 자식들의 top을 부모 기준으로 재계산
+        firstLevelSubjects.forEach(({ el, idx }) => {
+          const data = subjectDataMap.get(el);
+          const subjectLeft = data.left;
+          const startTop = parseInt(el.style.top) || 0;
+          let childTop = startTop + data.topIncrement;
+
+          for (let i = idx + 1; i < subjectsArray.length; i++) {
+            const child = subjectsArray[i];
+            const childData = subjectDataMap.get(child);
+            const childLeft = childData.left - (childData.hasExpander ? 0 : EXPANDER_WIDTH);
+
+            if (childLeft <= subjectLeft) break;
+
+            child.style.top = childTop + 'px';
+            updateRelatedElements(childData.cacheKey, childTop, null);
+            childTop += childData.topIncrement;
+          }
+        });
+
+        requestAnimationFrame(drawGanttHandler);
+      }
+
       // ========== 이벤트 바인딩 ==========
       function bindEvents() {
         document.addEventListener('click', (e) => {
@@ -205,10 +288,12 @@ $(function () {
       // ========== Public API ==========
       return {
         init: init,
-        rebuildCache: buildCache
+        rebuildCache: buildCache,
+        collapseFirstLevel: collapseFirstLevel
       };
     })();
 
     GanttToggle.init();
+    window.GanttToggle = GanttToggle;
   }
 });
