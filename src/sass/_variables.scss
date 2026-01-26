@@ -441,21 +441,22 @@ $tracker-default-colors-map: (
     color:                      $white
   )
 ) !default;
+
 $tracker-custom-colors-map: (
   1: (  // 설계
-    background: #a48100,
+    background: #A48100,
     color: $white,
   ),
   3: (  // 조달
-    background: #1e82cd,
+    background: #1E82CD,
     color: $white,
   ),
-  4: (  // 조립
+  /* 4: (  // 조립
     background: #0000cd,
     color: $white,
-  ),
+  ), */
   5: (  // 시험
-    background: #00c800,
+    background: #00C800,
     color: $white,
   ),
   6: (  // 납품
@@ -463,11 +464,11 @@ $tracker-custom-colors-map: (
     color: $white,
   ),
   9: (  // 영업
-    background: #dfda00,
+    background: #DFDA00,
     color: $white,
   ),
   10: ( // 검토
-    background: #eab800,
+    background: #EAB800,
     color: $white,
   ),
   11: ( // 관리
@@ -475,27 +476,47 @@ $tracker-custom-colors-map: (
     color: $white,
   ),
   12: ( // 설치
-    background: #0f0,
+    background: #00FF00,
     color: $white,
   ),
   17: ( // AS
-    background: #f00,
+    background: #FF0000,
     color: $white,
   ),
-  18: ( // 제작
+  /* 18: ( // 제작
     background: #06f,
     color: $white,
-  ),
+  ), */
   19: ( // 생산
-    background: #50c2ff,
+    background: #0066FF,
     color: $white,
   ),
-  22: ( // 장애
+  /* 22: ( // 장애
     background: #f39,
     color: $white,
-  ),
+  ), */
   23: ( // 제목
     background: $black,
+    color: $white,
+  ),
+  25: ( // 기획
+    background: #A48100,
+    color: $white,
+  ),
+  26: ( // 개발
+    background: #50C2FF,
+    color: $white,
+  ),
+  27: ( // 버그
+    background: #FF0000,
+    color: $white,
+  ),
+  28: ( // 개선
+    background: #FF3399,
+    color: $white,
+  ),
+  29: ( // 조립
+    background: #0000CD,
     color: $white,
   )
 ) !default;
